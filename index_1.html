@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>RutaOpt</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RutaOpt">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f1115;
+    color: #f2f2f2;
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  }
+  h1 { font-size: 20px; font-weight: 600; margin: 20px 0 4px; }
+  p.sub { font-size: 13px; color: #9a9a9a; margin: 0 0 20px; }
+  label { font-size: 13px; color: #9a9a9a; display: block; margin-bottom: 6px; }
+  input, textarea {
+    width: 100%;
+    background: #1c1f26;
+    border: 1px solid #2c303a;
+    border-radius: 10px;
+    color: #f2f2f2;
+    padding: 10px 12px;
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+  textarea { resize: vertical; font-family: inherit; }
+  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .row input[type="checkbox"] { width: auto; margin: 0; }
+  button {
+    width: 100%;
+    height: 46px;
+    border-radius: 10px;
+    border: none;
+    background: #0f6e56;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  button:active { opacity: 0.8; }
+  #status { font-size: 13px; color: #9a9a9a; min-height: 18px; margin: 12px 0 0; }
+  .card {
+    background: #1c1f26;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-top: 10px;
+  }
+  .card .title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .card .meta { font-size: 13px; color: #9a9a9a; margin-bottom: 8px; }
+  .card a { font-size: 13px; color: #5dcaa5; text-decoration: none; }
+  #summary { margin-top: 14px; font-size: 13px; color: #5dcaa5; background: #12261f; border-radius: 10px; padding: 12px 14px; display: none; }
+</style>
+</head>
+<body>
+<h1>RutaOpt</h1>
+<p class="sub">Optimiza el orden de tus paradas. Cada tramo abre Google Maps con el transporte público real.</p>
+
+<label for="origin">Punto de partida</label>
+<input id="origin" type="text" placeholder="Ej: Hotel Gracery Shinjuku, Tokyo" />
+
+<label for="stops">Puntos a visitar (uno por línea)</label>
+<textarea id="stops" rows="5" placeholder="Templo Senso-ji, Tokyo&#10;Shibuya Crossing, Tokyo&#10;TeamLab Planets, Tokyo"></textarea>
+
+<div class="row">
+  <input id="roundtrip" type="checkbox" checked />
+  <label for="roundtrip" style="margin:0">Volver al punto de partida</label>
+</div>
+
+<button id="optimizeBtn">Optimizar ruta</button>
+<p id="status"></p>
+<div id="results"></div>
+<div id="summary"></div>
+
+<script>
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+const summaryEl = document.getElementById('summary');
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function geocode(query){
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query);
+  const res = await fetch(url);
+  const data = await res.json();
+  if(!data.length) throw new Error('No se encontró: ' + query);
+  return { name: query, lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+}
+
+async function getMatrix(points){
+  const coords = points.map(p => p.lon + ',' + p.lat).join(';');
+  const url = 'https://router.project-osrm.org/table/v1/driving/' + coords + '?annotations=duration,distance';
+  const res = await fetch(url);
+  const data = await res.json();
+  if(data.code !== 'Ok') throw new Error('No se pudo calcular la matriz de rutas');
+  return data;
+}
+
+function permutations(arr){
+  if(arr.length <= 1) return [arr];
+  const result = [];
+  for(let i=0;i<arr.length;i++){
+    const rest = arr.slice(0,i).concat(arr.slice(i+1));
+    for(const p of permutations(rest)) result.push([arr[i], ...p]);
+  }
+  return result;
+}
+
+function solveTSP(durations, startIdx, endIdx, middleIdx){
+  let best = null, bestOrder = null;
+  const perms = permutations(middleIdx);
+  for(const perm of perms){
+    const seq = [startIdx, ...perm, endIdx];
+    let total = 0;
+    for(let i=0;i<seq.length-1;i++) total += durations[seq[i]][seq[i+1]];
+    if(best === null || total < best){ best = total; bestOrder = seq; }
+  }
+  return { order: bestOrder, total: best };
+}
+
+function mapsLink(a, b){
+  return 'https://www.google.com/maps/dir/?api=1&origin=' + a.lat + ',' + a.lon + '&destination=' + b.lat + ',' + b.lon + '&travelmode=transit';
+}
+
+document.getElementById('optimizeBtn').addEventListener('click', async () => {
+  resultsEl.innerHTML = '';
+  summaryEl.style.display = 'none';
+  const originText = document.getElementById('origin').value.trim();
+  const stopsText = document.getElementById('stops').value.trim();
+  const roundtrip = document.getElementById('roundtrip').checked;
+  if(!originText || !stopsText){
+    statusEl.textContent = 'Rellena el punto de partida y al menos un punto a visitar.';
+    return;
+  }
+  const stopLines = stopsText.split('\n').map(s => s.trim()).filter(Boolean);
+
+  try {
+    statusEl.textContent = 'Localizando puntos (1 por segundo)...';
+    const origin = await geocode(originText);
+    const stops = [];
+    for(const line of stopLines){
+      await sleep(1000);
+      statusEl.textContent = 'Localizando: ' + line;
+      stops.push(await geocode(line));
+    }
+
+    const points = [origin, ...stops];
+    statusEl.textContent = 'Calculando matriz de distancias...';
+    const matrix = await getMatrix(points);
+
+    const startIdx = 0;
+    const endIdx = roundtrip ? 0 : points.length - 1;
+    const middleIdx = points.map((_,i)=>i).filter(i => i !== startIdx && i !== endIdx);
+
+    statusEl.textContent = 'Optimizando orden de visita...';
+    const solution = solveTSP(matrix.durations, startIdx, endIdx, middleIdx);
+
+    let totalMin = 0, totalKm = 0;
+    for(let i=0;i<solution.order.length-1;i++){
+      const a = points[solution.order[i]];
+      const b = points[solution.order[i+1]];
+      const durMin = Math.round(matrix.durations[solution.order[i]][solution.order[i+1]] / 60);
+      const distKm = (matrix.distances[solution.order[i]][solution.order[i+1]] / 1000).toFixed(1);
+      totalMin += durMin;
+      totalKm += parseFloat(distKm);
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML =
+        '<div class="title">' + (i+1) + '. ' + a.name.split(',')[0] + ' &rarr; ' + b.name.split(',')[0] + '</div>' +
+        '<div class="meta">Referencia en coche: ' + durMin + ' min, ' + distKm + ' km</div>' +
+        '<a href="' + mapsLink(a,b) + '" target="_blank">Ver transporte público real en Google Maps &rarr;</a>';
+      resultsEl.appendChild(card);
+    }
+
+    statusEl.textContent = '';
+    summaryEl.style.display = 'block';
+    summaryEl.textContent = 'Orden optimizado. Total referencia en coche: ~' + totalMin + ' min, ' + totalKm.toFixed(1) + ' km. Toca cada enlace para ver metro, líneas y tiempos reales.';
+  } catch(err){
+    statusEl.textContent = 'Error: ' + err.message;
+  }
+});
+</script>
+</body>
+</html>
