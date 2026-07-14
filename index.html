@@ -74,14 +74,41 @@
   .card {
     background: var(--bg-card);
     border-radius: var(--radius-md);
-    padding: 14px 16px;
-    margin-top: 10px;
+    padding: 16px;
+    margin-top: 12px;
     box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
     animation: cardIn 320ms var(--ease-out) both;
   }
-  .card .title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
-  .card .meta { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
-  .card a { font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 600; }
+  .leg-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .leg-num {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 11px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .leg-title { font-weight: 700; font-size: 14px; line-height: 1.35; flex: 1; min-width: 0; }
+  .walk-badge {
+    flex-shrink: 0; margin-top: 2px;
+    display: inline-flex; align-items: center; background: #2b8a3e; color: #fff;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.5px;
+    padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .time-pill {
+    display: inline-block;
+    font-size: 12px; font-weight: 600; color: var(--text-muted); line-height: 1.55;
+    background: #f5efe6; padding: 7px 13px; border-radius: 13px; margin-bottom: 11px;
+  }
+  .time-pill .car-time, .time-pill .walk-time { display: block; white-space: nowrap; }
+  .time-pill .walk-time { color: #2b8a3e; }
+  .go-label { font-size: 10px; font-weight: 800; color: var(--text-muted); letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 6px; }
+  .card-links { display: flex; flex-wrap: wrap; gap: 6px; }
+  .card-link {
+    font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap;
+    padding: 8px 13px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px;
+    transition: transform 150ms var(--ease-out);
+  }
+  .card-link:active { transform: scale(0.93); }
+  .card-link.gmaps { background: var(--accent-soft); color: var(--accent); }
+  .card-link.walk { background: #e7f6ea; color: #2b8a3e; }
   #summary {
     margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--accent);
     background: var(--accent-soft); border-radius: var(--radius-sm); padding: 14px 16px; display: none;
@@ -792,9 +819,29 @@ function solveTSP(durations, startIdx, endIdx, middleIdx){
 // más cercano de SU base de datos (el W Barcelona salía como "El Pez Vela", su
 // vecino). Con el nombre, lo resuelve al lugar correcto. Si por lo que sea no
 // hubiera nombre, caemos a la coordenada como respaldo.
-function mapsLink(a, b){
+function mapsLink(a, b, mode){
   const q = (p) => p.name ? encodeURIComponent(p.name) : (p.lat + ',' + p.lon);
-  return 'https://www.google.com/maps/dir/?api=1&origin=' + q(a) + '&destination=' + q(b) + '&travelmode=transit';
+  return 'https://www.google.com/maps/dir/?api=1&origin=' + q(a) + '&destination=' + q(b) + '&travelmode=' + mode;
+}
+
+// Distancia en línea recta (haversine) entre dos puntos, en km. La usamos para
+// decidir si un tramo es "a pie": la distancia por carretera (OSRM) se infla con
+// sentidos únicos y desvíos, así que no representa bien lo realmente andable.
+function haversineKm(a, b){
+  const R = 6371, toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat), dLon = toRad(b.lon - a.lon);
+  const s = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+const WALKING_MAX_KM = 2; // umbral (en línea recta) para marcar un tramo como "WALKING DISTANCE"
+
+// Estimación honesta del trayecto a pie. OSRM público NO da tiempos reales de
+// peatón (devuelve los de coche para cualquier perfil), así que aproximamos:
+// distancia recta × 1.3 (los peatones no van en línea recta pero sí bastante
+// directos) y ~12 min/km (unos 5 km/h de paseo).
+function walkEstimate(a, b){
+  const km = haversineKm(a, b) * 1.3;
+  return { km, min: Math.round(km * 12) };
 }
 
 const mapEl = document.getElementById('map');
@@ -947,10 +994,24 @@ async function runOptimize(){
       const card = document.createElement('div');
       card.className = 'card';
       card.style.animationDelay = Math.min(i * 60, 300) + 'ms';
+      const walkable = haversineKm(a, b) <= WALKING_MAX_KM;
+      const walk = walkable ? walkEstimate(a, b) : null;
       card.innerHTML =
-        '<div class="title">' + (i+1) + '. ' + a.name.split(',')[0] + ' &rarr; ' + b.name.split(',')[0] + '</div>' +
-        '<div class="meta">Referencia en coche: ' + durMin + ' min, ' + distKm + ' km</div>' +
-        '<a href="' + mapsLink(a,b) + '" target="_blank">Ver transporte público real en Google Maps &rarr;</a>';
+        '<div class="leg-head">' +
+          '<span class="leg-num">' + (i+1) + '</span>' +
+          '<span class="leg-title">' + a.name.split(',')[0] + ' &rarr; ' + b.name.split(',')[0] + '</span>' +
+          (walkable ? '<span class="walk-badge">WALKING DISTANCE</span>' : '') +
+        '</div>' +
+        '<div class="time-pill">' +
+          '<span class="car-time">🚗 En coche · ' + durMin + ' min · ' + distKm + ' km</span>' +
+          (walk ? '<span class="walk-time">🚶 A pie · ~' + walk.min + ' min · ' + walk.km.toFixed(1) + ' km</span>' : '') +
+        '</div>' +
+        '<div class="go-label">Ir en:</div>' +
+        '<div class="card-links">' +
+          '<a class="card-link gmaps" href="' + mapsLink(a, b, 'transit') + '" target="_blank">🚇 T. público</a>' +
+          '<a class="card-link gmaps" href="' + mapsLink(a, b, 'driving') + '" target="_blank">🚗 Coche</a>' +
+          (walkable ? '<a class="card-link walk" href="' + mapsLink(a, b, 'walking') + '" target="_blank">🚶 A pie</a>' : '') +
+        '</div>';
       resultsEl.appendChild(card);
     }
 
