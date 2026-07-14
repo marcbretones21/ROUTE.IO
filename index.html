@@ -87,15 +87,16 @@
   }
   .leg-title { font-weight: 700; font-size: 14px; line-height: 1.35; flex: 1; min-width: 0; }
   .walk-badge {
-    flex-shrink: 0; margin-top: 2px;
+    flex-shrink: 0;
     display: inline-flex; align-items: center; background: #2b8a3e; color: #fff;
     font-size: 9px; font-weight: 800; letter-spacing: 0.5px;
     padding: 3px 8px; border-radius: 999px; white-space: nowrap;
   }
+  .pill-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
   .time-pill {
     display: inline-block;
     font-size: 12px; font-weight: 600; color: var(--text-muted); line-height: 1.55;
-    background: #f5efe6; padding: 7px 13px; border-radius: 13px; margin-bottom: 11px;
+    background: #f5efe6; padding: 7px 13px; border-radius: 13px;
   }
   .time-pill .car-time, .time-pill .walk-time { display: block; white-space: nowrap; }
   .time-pill .walk-time { color: #2b8a3e; }
@@ -230,6 +231,63 @@
   }
   .saved-card-delete:active { transform: scale(0.88); }
   .empty-hint { color: var(--text-muted); font-size: 14px; margin-top: 32px; text-align: center; line-height: 1.5; }
+  .saved-card-count { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+  .saved-grid.list-mode { grid-template-columns: 1fr; }
+  .back-btn { margin-bottom: 0; height: 44px; font-size: 14px; }
+  .day-card {
+    background: var(--bg-card); border-radius: var(--radius-md); padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
+    display: flex; align-items: center; gap: 10px;
+    animation: cardIn 320ms var(--ease-out) both;
+    transition: transform 160ms var(--ease-out);
+  }
+  .day-card:active { transform: scale(0.98); }
+  .day-info { flex: 1; min-width: 0; }
+  .day-name { font-weight: 700; font-size: 15px; }
+  .day-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .remove-day, .edit-day {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+    background: #f5efe6; color: var(--text-muted); border: none; font-size: 15px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .edit-day { font-size: 13px; }
+
+  /* --- Modo "en ruta" --- */
+  .progress-card {
+    background: var(--bg-card); border-radius: var(--radius-md); padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
+  }
+  .progress-text { font-weight: 800; font-size: 14px; margin-bottom: 9px; }
+  .progress-bar { height: 8px; background: #f5efe6; border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 400ms var(--ease-out); }
+  .ruta-stop {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--bg-card); border-radius: var(--radius-md); padding: 13px 15px;
+    box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
+    animation: cardIn 320ms var(--ease-out) both;
+  }
+  .ruta-stop.done { opacity: 0.5; }
+  .ruta-stop.done .ruta-stop-name { text-decoration: line-through; }
+  .ruta-stop.next { box-shadow: 0 0 0 2px var(--accent), 0 6px 18px rgba(31,27,22,0.08); }
+  .ruta-check {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid #d9cdbb; background: none; color: #fff; font-size: 14px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; padding: 0; margin-top: 1px;
+    transition: transform 140ms var(--ease-out), background 140ms var(--ease-out);
+  }
+  .ruta-check:active { transform: scale(0.85); }
+  .ruta-stop.done .ruta-check { background: var(--accent); border-color: var(--accent); }
+  .ruta-body { flex: 1; min-width: 0; }
+  .ruta-next-label { font-size: 10px; font-weight: 800; color: var(--accent); letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 2px; }
+  .ruta-stop-name { font-weight: 700; font-size: 15px; line-height: 1.3; }
+  .ruta-leg-meta { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-top: 4px; }
+  .ruta-leg-meta .walk-time { color: #2b8a3e; }
+  .ruta-stop .card-links { margin-top: 10px; }
+  .ruta-done-card {
+    background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px;
+    border-radius: var(--radius-md); padding: 16px; text-align: center;
+  }
+  .reset-progress { background: none; border: none; color: var(--text-muted); font-size: 12px; font-weight: 600; text-decoration: underline; height: auto; padding: 6px 0; width: auto; margin: 0 auto; display: block; }
 
   @keyframes cardIn {
     from { opacity: 0; transform: translateY(8px); }
@@ -269,11 +327,17 @@
 <button type="button" id="openSaveBtn" class="secondary">Guardar esta ruta</button>
 
 <div id="savePanel" class="hidden">
-  <label for="routeNameInput">Nombre de la ruta</label>
-  <input id="routeNameInput" type="text" placeholder="Ej: Día 1 - Tokio" />
+  <label for="tripSelect">Viaje</label>
+  <select id="tripSelect"></select>
+  <div id="newTripFields">
+    <label for="newTripName">Nombre del nuevo viaje</label>
+    <input id="newTripName" type="text" placeholder="Ej: Japón 2026" />
+  </div>
+  <label for="dayNameInput">Nombre del día</label>
+  <input id="dayNameInput" type="text" placeholder="Ej: Día 1" />
   <div class="cover-preview-row">
     <img id="coverPreview" class="hidden" alt="Portada elegida" />
-    <button type="button" id="pickPhotoBtn" class="secondary small">Elegir foto de portada</button>
+    <button type="button" id="pickPhotoBtn" class="secondary small">Foto de portada del viaje</button>
   </div>
   <input type="file" id="coverPhotoInput" accept="image/*" class="hidden">
   <div class="saved-row">
@@ -290,8 +354,8 @@
 </div>
 
 <div id="tab-saved" class="tab-panel hidden">
-<h1>Rutas guardadas</h1>
-<p class="sub">Toca una ruta para ver su mapa optimizado, o pulsa la × para borrarla.</p>
+<h1 id="savedTitle">Viajes</h1>
+<p class="sub" id="savedSub">Toca un viaje para ver sus días.</p>
 <div id="savedGrid" class="saved-grid"></div>
 </div>
 
@@ -302,7 +366,7 @@
   </button>
   <button type="button" class="tab-btn" data-tab="saved">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>
-    Rutas guardadas
+    Viajes
   </button>
 </nav>
 
@@ -561,9 +625,32 @@ function applyFormState(state){
   document.getElementById('roundtrip').checked = state.roundtrip !== false;
 }
 
-function getSavedRoutes(){
-  return readJSON(SAVED_ROUTES_KEY, []);
-}
+// --- Viajes multi-día: un viaje (nombre + portada) contiene una lista de días,
+// cada uno con su propio origen/paradas/roundtrip. ---
+const TRIPS_KEY = 'rutaopt:trips';
+
+function getTrips(){ return readJSON(TRIPS_KEY, []); }
+function saveTrips(trips){ writeJSON(TRIPS_KEY, trips); }
+
+// Migración desde el formato antiguo (rutas sueltas): cada ruta guardada pasa a
+// ser un viaje de un solo día, conservando nombre y portada. Se ejecuta una vez;
+// después la clave antigua se elimina para no migrar dos veces.
+(function migrateOldSavedRoutes(){
+  const old = readJSON(SAVED_ROUTES_KEY, null);
+  if(!old || !old.length) return;
+  const trips = getTrips();
+  for(const r of old){
+    trips.push({
+      id: 't' + r.id,
+      name: r.name,
+      photo: r.photo,
+      createdAt: r.savedAt || new Date().toISOString(),
+      days: [{ id: 'd' + r.id, name: 'Día 1', origin: r.origin, stops: r.stops, roundtrip: r.roundtrip }]
+    });
+  }
+  saveTrips(trips);
+  try { localStorage.removeItem(SAVED_ROUTES_KEY); } catch(err){}
+})();
 
 const lastRoute = readJSON(LAST_ROUTE_KEY, null);
 if(lastRoute && ((lastRoute.origin && lastRoute.origin.value) || (lastRoute.stops && lastRoute.stops.length))){
@@ -635,15 +722,42 @@ const savePanel = document.getElementById('savePanel');
 const coverPreview = document.getElementById('coverPreview');
 const coverPhotoInput = document.getElementById('coverPhotoInput');
 
+const tripSelect = document.getElementById('tripSelect');
+const newTripFields = document.getElementById('newTripFields');
+const dayNameInput = document.getElementById('dayNameInput');
+
+// Rellena el desplegable de viajes y propone "Día N" según el viaje elegido.
+function populateSavePanel(){
+  const trips = getTrips();
+  tripSelect.innerHTML =
+    '<option value="__new">➕ Nuevo viaje…</option>' +
+    trips.map(t => '<option value="' + t.id + '">' + t.name.replace(/</g,'&lt;') + '</option>').join('');
+  // Si hay un viaje abierto en la pestaña Viajes, proponerlo por defecto.
+  if(openTripId && trips.some(t => t.id === openTripId)) tripSelect.value = openTripId;
+  syncSavePanelToTrip();
+}
+
+function syncSavePanelToTrip(){
+  const isNew = tripSelect.value === '__new';
+  newTripFields.classList.toggle('hidden', !isNew);
+  const trip = getTrips().find(t => t.id === tripSelect.value);
+  dayNameInput.value = 'Día ' + ((trip ? trip.days.length : 0) + 1);
+}
+
+tripSelect.addEventListener('change', syncSavePanelToTrip);
+
 function resetSavePanel(){
   savePanel.classList.add('hidden');
-  document.getElementById('routeNameInput').value = '';
+  document.getElementById('newTripName').value = '';
+  dayNameInput.value = '';
   pendingCoverPhoto = null;
   coverPreview.src = '';
   coverPreview.classList.add('hidden');
 }
 
 document.getElementById('openSaveBtn').addEventListener('click', () => {
+  const willOpen = savePanel.classList.contains('hidden');
+  if(willOpen) populateSavePanel();
   savePanel.classList.toggle('hidden');
 });
 
@@ -664,63 +778,101 @@ coverPhotoInput.addEventListener('change', async () => {
 });
 
 document.getElementById('confirmSaveBtn').addEventListener('click', () => {
-  const nameInput = document.getElementById('routeNameInput');
-  const name = nameInput.value.trim();
-  if(!name){
-    statusEl.textContent = 'Ponle un nombre a la ruta antes de guardarla.';
-    return;
-  }
   const state = captureFormState();
   if(!state.origin.value || !state.stops.length){
     statusEl.textContent = 'Rellena el origen y al menos una parada antes de guardar.';
     return;
   }
 
-  const routes = getSavedRoutes();
-  const existingIdx = routes.findIndex(r => r.name === name);
-  const photo = pendingCoverPhoto || (existingIdx >= 0 ? routes[existingIdx].photo : undefined);
+  const trips = getTrips();
+  let trip;
+  if(tripSelect.value === '__new'){
+    const tripName = document.getElementById('newTripName').value.trim();
+    if(!tripName){
+      statusEl.textContent = 'Ponle un nombre al nuevo viaje.';
+      return;
+    }
+    trip = { id: 't' + Date.now(), name: tripName, photo: pendingCoverPhoto || undefined, createdAt: new Date().toISOString(), days: [] };
+    trips.push(trip);
+  } else {
+    trip = trips.find(t => t.id === tripSelect.value);
+    if(!trip){
+      statusEl.textContent = 'Elige un viaje de la lista.';
+      return;
+    }
+    if(pendingCoverPhoto) trip.photo = pendingCoverPhoto; // permite actualizar la portada
+  }
 
-  const entry = Object.assign(
-    { id: existingIdx >= 0 ? routes[existingIdx].id : 'r' + Date.now(), name, savedAt: new Date().toISOString(), photo },
+  const dayName = dayNameInput.value.trim() || ('Día ' + (trip.days.length + 1));
+  // Guardar con el nombre de un día existente lo sobrescribe (útil para afinar).
+  const existingIdx = trip.days.findIndex(d => d.name === dayName);
+  const day = Object.assign(
+    { id: existingIdx >= 0 ? trip.days[existingIdx].id : 'd' + Date.now(), name: dayName, savedAt: new Date().toISOString() },
     state
   );
-  if(existingIdx >= 0) routes[existingIdx] = entry; else routes.push(entry);
-  writeJSON(SAVED_ROUTES_KEY, routes);
+  if(existingIdx >= 0) trip.days[existingIdx] = day; else trip.days.push(day);
+  saveTrips(trips);
   resetSavePanel();
-  statusEl.textContent = 'Ruta "' + name + '" guardada.';
+  statusEl.textContent = 'Guardado: ' + trip.name + ' — ' + dayName + '.';
 });
 
-// --- Cuadrícula de rutas guardadas (pestaña "Rutas guardadas") ---
+// --- Pestaña "Viajes": cuadrícula de viajes → lista de días → modo "en ruta". ---
+let openTripId = null;
+let openDayId = null;
+
 function renderSavedGrid(){
   const grid = document.getElementById('savedGrid');
-  const routes = getSavedRoutes();
+  const title = document.getElementById('savedTitle');
+  const sub = document.getElementById('savedSub');
+  const trips = getTrips();
+
+  const openTrip = openTripId && trips.find(t => t.id === openTripId);
+  if(openTrip){
+    const openDay = openDayId && openTrip.days.find(d => d.id === openDayId);
+    if(openDay){ renderEnRuta(openTrip, openDay); return; }
+    openDayId = null;
+    renderTripDays(openTrip);
+    return;
+  }
+  openTripId = null;
+  openDayId = null;
+
+  title.textContent = 'Viajes';
+  sub.textContent = 'Toca un viaje para ver sus días.';
+  grid.classList.remove('list-mode');
   grid.innerHTML = '';
-  if(!routes.length){
+
+  if(!trips.length){
     const hint = document.createElement('p');
     hint.className = 'empty-hint';
-    hint.textContent = 'Todavía no has guardado ninguna ruta. Ve a "Route.io", arma tu ruta y pulsa "Guardar esta ruta".';
+    hint.textContent = 'Todavía no has guardado ningún viaje. Ve a "Route.io", arma tu ruta y pulsa "Guardar esta ruta".';
     grid.appendChild(hint);
     return;
   }
-  routes.forEach((route, idx) => {
+
+  trips.forEach((trip, idx) => {
     const card = document.createElement('div');
     card.className = 'saved-card';
     card.style.animationDelay = Math.min(idx * 45, 270) + 'ms';
 
     const photo = document.createElement('div');
     photo.className = 'saved-card-photo';
-    if(route.photo){
-      photo.style.backgroundImage = 'url(' + route.photo + ')';
+    if(trip.photo){
+      photo.style.backgroundImage = 'url(' + trip.photo + ')';
     } else {
       photo.classList.add('saved-card-initial');
-      photo.style.backgroundColor = coverColorFor(route.name);
-      photo.textContent = (route.name.trim()[0] || '?').toUpperCase();
+      photo.style.backgroundColor = coverColorFor(trip.name);
+      photo.textContent = (trip.name.trim()[0] || '?').toUpperCase();
     }
     card.appendChild(photo);
 
     const name = document.createElement('div');
     name.className = 'saved-card-name';
-    name.textContent = route.name;
+    name.textContent = trip.name;
+    const count = document.createElement('div');
+    count.className = 'saved-card-count';
+    count.textContent = trip.days.length + (trip.days.length === 1 ? ' día' : ' días');
+    name.appendChild(count);
     card.appendChild(name);
 
     const delBtn = document.createElement('button');
@@ -729,20 +881,256 @@ function renderSavedGrid(){
     delBtn.textContent = '×';
     delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if(!confirm('¿Eliminar la ruta "' + route.name + '"?')) return;
-      writeJSON(SAVED_ROUTES_KEY, getSavedRoutes().filter(r => r.id !== route.id));
+      if(!confirm('¿Eliminar el viaje "' + trip.name + '" con todos sus días?')) return;
+      saveTrips(getTrips().filter(t => t.id !== trip.id));
       renderSavedGrid();
     });
     card.appendChild(delBtn);
 
     card.addEventListener('click', () => {
-      applyFormState(route);
-      setActiveTab('optimizer');
-      runOptimize();
+      openTripId = trip.id;
+      renderSavedGrid();
     });
 
     grid.appendChild(card);
   });
+}
+
+function renderTripDays(trip){
+  const grid = document.getElementById('savedGrid');
+  const title = document.getElementById('savedTitle');
+  const sub = document.getElementById('savedSub');
+
+  title.textContent = trip.name;
+  sub.textContent = 'Toca un día para cargarlo con su ruta optimizada.';
+  grid.classList.add('list-mode');
+  grid.innerHTML = '';
+
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'secondary back-btn';
+  backBtn.textContent = '← Todos los viajes';
+  backBtn.addEventListener('click', () => { openTripId = null; renderSavedGrid(); });
+  grid.appendChild(backBtn);
+
+  if(!trip.days.length){
+    const hint = document.createElement('p');
+    hint.className = 'empty-hint';
+    hint.textContent = 'Este viaje aún no tiene días. Ve a "Route.io", arma la ruta del día y guárdala en este viaje.';
+    grid.appendChild(hint);
+    return;
+  }
+
+  trip.days.forEach((day, idx) => {
+    const row = document.createElement('div');
+    row.className = 'day-card';
+    row.style.animationDelay = Math.min(idx * 45, 270) + 'ms';
+
+    const info = document.createElement('div');
+    info.className = 'day-info';
+    const dname = document.createElement('div');
+    dname.className = 'day-name';
+    dname.textContent = day.name;
+    const dmeta = document.createElement('div');
+    dmeta.className = 'day-meta';
+    dmeta.textContent = (day.origin.value || '').split(',')[0] + ' · ' + day.stops.length +
+      (day.stops.length === 1 ? ' parada' : ' paradas') + (day.roundtrip !== false ? ' · circular' : '');
+    info.appendChild(dname);
+    info.appendChild(dmeta);
+    row.appendChild(info);
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'edit-day';
+    editBtn.textContent = '✎';
+    editBtn.title = 'Editar este día en el optimizador';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      applyFormState(day);
+      setActiveTab('optimizer');
+      runOptimize();
+    });
+    row.appendChild(editBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'remove-day';
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if(!confirm('¿Eliminar "' + day.name + '" de este viaje?')) return;
+      const trips = getTrips();
+      const t = trips.find(x => x.id === trip.id);
+      if(t) t.days = t.days.filter(d => d.id !== day.id);
+      saveTrips(trips);
+      renderSavedGrid();
+    });
+    row.appendChild(delBtn);
+
+    // Tocar el día abre el modo "en ruta": checklist con la próxima parada.
+    row.addEventListener('click', () => {
+      openDayId = day.id;
+      renderSavedGrid();
+    });
+
+    grid.appendChild(row);
+  });
+}
+
+// El orden optimizado del día se calcula UNA vez y se guarda dentro del propio
+// día (itinerary), de modo que reabrirlo es instantáneo y funciona sin conexión.
+// Si el día se vuelve a guardar desde el optimizador, el objeto se sustituye y
+// el itinerario (y el progreso) se recalculan: es lo correcto, la ruta cambió.
+async function ensureItinerary(tripId, dayId){
+  const trips = getTrips();
+  const trip = trips.find(t => t.id === tripId);
+  const day = trip && trip.days.find(d => d.id === dayId);
+  if(!day) return null;
+  if(day.itinerary) return day;
+
+  const raw = [day.origin, ...day.stops];
+  if(raw.some(p => !p.lat || !p.lon)){
+    throw new Error('Este día tiene puntos sin coordenadas. Edítalo (✎) y vuelve a guardarlo.');
+  }
+  const points = raw.map(p => ({ name: p.value, lat: parseFloat(p.lat), lon: parseFloat(p.lon) }));
+  const matrix = await getMatrix(points);
+  const roundtrip = day.roundtrip !== false;
+  const startIdx = 0;
+  const endIdx = roundtrip ? 0 : points.length - 1;
+  const middleIdx = points.map((_,i)=>i).filter(i => i !== startIdx && i !== endIdx);
+  const sol = solveTSP(matrix.durations, startIdx, endIdx, middleIdx);
+
+  const legs = [];
+  for(let k = 0; k < sol.order.length - 1; k++){
+    legs.push({
+      durMin: Math.round(matrix.durations[sol.order[k]][sol.order[k+1]] / 60),
+      distKm: +(matrix.distances[sol.order[k]][sol.order[k+1]] / 1000).toFixed(1)
+    });
+  }
+  day.itinerary = { points: sol.order.map(i => points[i]), legs, roundtrip };
+  day.done = {};
+  saveTrips(trips);
+  return day;
+}
+
+function renderEnRuta(trip, day){
+  const grid = document.getElementById('savedGrid');
+  const title = document.getElementById('savedTitle');
+  const sub = document.getElementById('savedSub');
+
+  title.textContent = day.name;
+  sub.textContent = trip.name + ' — modo en ruta';
+  grid.classList.add('list-mode');
+  grid.innerHTML = '';
+
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'secondary back-btn';
+  backBtn.textContent = '← ' + trip.name;
+  backBtn.addEventListener('click', () => { openDayId = null; renderSavedGrid(); });
+  grid.appendChild(backBtn);
+
+  // Primera apertura: hay que calcular el orden (necesita red una sola vez).
+  if(!day.itinerary){
+    const hint = document.createElement('p');
+    hint.className = 'empty-hint';
+    hint.textContent = 'Calculando el mejor orden de visita...';
+    grid.appendChild(hint);
+    ensureItinerary(trip.id, day.id)
+      .then(() => renderSavedGrid())
+      .catch(err => { hint.textContent = 'Error: ' + err.message; });
+    return;
+  }
+
+  const it = day.itinerary;
+  const done = day.done || {};
+  const totalStops = it.points.length - 1; // todos menos el punto de salida
+  const doneCount = Object.keys(done).filter(k => done[k]).length;
+  const allDone = doneCount >= totalStops;
+  const nextIdx = (() => { for(let i = 1; i < it.points.length; i++){ if(!done[i]) return i; } return -1; })();
+
+  const prog = document.createElement('div');
+  prog.className = 'progress-card';
+  prog.innerHTML =
+    '<div class="progress-text">' + doneCount + '/' + totalStops + ' visitadas</div>' +
+    '<div class="progress-bar"><div class="progress-fill" style="width:' + Math.round(doneCount / totalStops * 100) + '%"></div></div>';
+  grid.appendChild(prog);
+
+  if(allDone){
+    const doneCard = document.createElement('div');
+    doneCard.className = 'ruta-done-card';
+    doneCard.textContent = '🎉 ¡Día completado! Buen viaje.';
+    grid.appendChild(doneCard);
+  }
+
+  function toggleDone(i){
+    const trips = getTrips();
+    const t = trips.find(x => x.id === trip.id);
+    const d = t && t.days.find(x => x.id === day.id);
+    if(!d) return;
+    d.done = d.done || {};
+    d.done[i] = !d.done[i];
+    saveTrips(trips);
+    renderSavedGrid();
+  }
+
+  for(let i = 1; i < it.points.length; i++){
+    const p = it.points[i];
+    const prev = it.points[i-1];
+    const isReturn = it.roundtrip && i === it.points.length - 1;
+    const isDone = !!done[i];
+    const isNext = i === nextIdx;
+
+    const row = document.createElement('div');
+    row.className = 'ruta-stop' + (isDone ? ' done' : '') + (isNext ? ' next' : '');
+    row.style.animationDelay = Math.min((i-1) * 40, 240) + 'ms';
+
+    const check = document.createElement('button');
+    check.type = 'button';
+    check.className = 'ruta-check';
+    check.textContent = isDone ? '✓' : '';
+    check.addEventListener('click', () => toggleDone(i));
+    row.appendChild(check);
+
+    const body = document.createElement('div');
+    body.className = 'ruta-body';
+    let inner = '';
+    if(isNext) inner += '<div class="ruta-next-label">Próxima parada</div>';
+    inner += '<div class="ruta-stop-name">' + (isReturn ? '🏠 Regreso: ' : (i + '. ')) + p.name.split(',')[0] + '</div>';
+
+    if(isNext){
+      const leg = it.legs[i-1];
+      const walkable = haversineKm(prev, p) <= WALKING_MAX_KM;
+      const walk = walkable ? walkEstimate(prev, p) : null;
+      inner += '<div class="ruta-leg-meta">🚗 ' + leg.durMin + ' min · ' + leg.distKm + ' km' +
+        (walk ? ' &nbsp;·&nbsp; <span class="walk-time">🚶 ~' + walk.min + ' min</span>' : '') + '</div>';
+      inner += '<div class="card-links">' +
+        '<a class="card-link gmaps" href="' + mapsLink(prev, p, 'transit') + '" target="_blank">🚇 T. público</a>' +
+        '<a class="card-link gmaps" href="' + mapsLink(prev, p, 'driving') + '" target="_blank">🚗 Coche</a>' +
+        (walkable ? '<a class="card-link walk" href="' + mapsLink(prev, p, 'walking') + '" target="_blank">🚶 A pie</a>' : '') +
+        '</div>';
+    }
+    body.innerHTML = inner;
+    row.appendChild(body);
+    grid.appendChild(row);
+  }
+
+  if(doneCount > 0){
+    const reset = document.createElement('button');
+    reset.type = 'button';
+    reset.className = 'reset-progress';
+    reset.textContent = 'Reiniciar progreso del día';
+    reset.addEventListener('click', () => {
+      if(!confirm('¿Desmarcar todas las paradas de ' + day.name + '?')) return;
+      const trips = getTrips();
+      const t = trips.find(x => x.id === trip.id);
+      const d = t && t.days.find(x => x.id === day.id);
+      if(d) d.done = {};
+      saveTrips(trips);
+      renderSavedGrid();
+    });
+    grid.appendChild(reset);
+  }
 }
 
 async function getMatrix(points){
@@ -1000,11 +1388,13 @@ async function runOptimize(){
         '<div class="leg-head">' +
           '<span class="leg-num">' + (i+1) + '</span>' +
           '<span class="leg-title">' + a.name.split(',')[0] + ' &rarr; ' + b.name.split(',')[0] + '</span>' +
-          (walkable ? '<span class="walk-badge">WALKING DISTANCE</span>' : '') +
         '</div>' +
-        '<div class="time-pill">' +
-          '<span class="car-time">🚗 En coche · ' + durMin + ' min · ' + distKm + ' km</span>' +
-          (walk ? '<span class="walk-time">🚶 A pie · ~' + walk.min + ' min · ' + walk.km.toFixed(1) + ' km</span>' : '') +
+        '<div class="pill-row">' +
+          '<div class="time-pill">' +
+            '<span class="car-time">🚗 En coche · ' + durMin + ' min · ' + distKm + ' km</span>' +
+            (walk ? '<span class="walk-time">🚶 A pie · ~' + walk.min + ' min · ' + walk.km.toFixed(1) + ' km</span>' : '') +
+          '</div>' +
+          (walkable ? '<span class="walk-badge">WALKING DISTANCE</span>' : '') +
         '</div>' +
         '<div class="go-label">Ir en:</div>' +
         '<div class="card-links">' +
