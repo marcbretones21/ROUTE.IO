@@ -13,30 +13,33 @@
   integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
 <style>
   :root {
-    --bg: #faf3ea;
+    --bg-top: #f4f3ed;
+    --bg-bot: #e9ece4;
     --bg-card: #ffffff;
-    --border: #efe3d2;
-    --text: #1f1b16;
-    --text-muted: #7a6f60;
+    --border: #e8e6de;
+    --text: #16130e;
+    --text-muted: #8a847a;
     --accent: #0f6e56;
     --accent-soft: #e7f3ef;
-    --radius-lg: 20px;
-    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-md: 18px;
     --radius-sm: 12px;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --shadow-soft: 0 2px 6px rgba(20,18,14,0.04), 0 12px 30px rgba(20,18,14,0.07);
+    --shadow-pill: 0 2px 6px rgba(20,18,14,0.05), 0 8px 22px rgba(20,18,14,0.07);
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bot) 100%) fixed;
     color: var(--text);
-    padding: env(safe-area-inset-top) 16px calc(84px + env(safe-area-inset-bottom));
+    padding: env(safe-area-inset-top) 16px calc(100px + env(safe-area-inset-bottom));
     -webkit-tap-highlight-color: transparent;
   }
-  .hidden { display: none; }
-  h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 22px 0 4px; }
-  p.sub { font-size: 14px; color: var(--text-muted); margin: 0 0 20px; line-height: 1.4; }
+  .hidden { display: none !important; }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.035em; text-transform: lowercase; margin: 24px 0 6px; }
+  p.sub { font-size: 14px; color: var(--text-muted); margin: 0 0 20px; line-height: 1.45; }
   label { font-size: 13px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px; }
   input, textarea, select {
     width: 100%;
@@ -47,7 +50,7 @@
     padding: 14px 18px;
     font-size: 15px;
     margin-bottom: 16px;
-    box-shadow: 0 1px 2px rgba(31,27,22,0.06), 0 4px 14px rgba(31,27,22,0.06);
+    box-shadow: var(--shadow-pill);
     transition: box-shadow 160ms var(--ease-out);
   }
   input::placeholder, textarea::placeholder { color: #b0a692; }
@@ -60,23 +63,33 @@
   .row input[type="checkbox"] { width: auto; margin: 0; box-shadow: none; accent-color: var(--accent); }
   button {
     width: 100%;
-    height: 50px;
+    height: 52px;
     border-radius: 999px;
     border: none;
     background: var(--accent);
     color: white;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    box-shadow: var(--shadow-pill);
     transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
   }
   button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.8; pointer-events: none; }
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+    display: inline-block; vertical-align: -3px; margin-right: 9px;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   #status { font-size: 13px; color: var(--text-muted); min-height: 18px; margin: 12px 0 0; }
   .card {
     background: var(--bg-card);
     border-radius: var(--radius-md);
     padding: 16px;
     margin-top: 12px;
-    box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
+    box-shadow: var(--shadow-soft);
     animation: cardIn 320ms var(--ease-out) both;
   }
   .leg-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
@@ -138,17 +151,24 @@
   .ac-wrapper.confirmed input { padding-right: 42px; }
   /* Aviso: el campo tiene texto pero no se ha elegido ningún lugar de la lista. */
   .ac-wrapper.needs-select input { box-shadow: 0 0 0 2px #d1544a; }
-  .stop-row { display: flex; gap: 8px; align-items: flex-start; }
+  .stop-row {
+    display: flex; gap: 8px; align-items: flex-start; overflow: hidden;
+    animation: stopIn 260ms var(--ease-out) both;
+    transition: max-height 240ms var(--ease-out), opacity 190ms var(--ease-out), transform 190ms var(--ease-out);
+  }
+  @keyframes stopIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .stop-row.removing { opacity: 0; transform: scale(0.96); }
+  .stop-row.removing .ac-wrapper { margin-bottom: 0; transition: margin-bottom 240ms var(--ease-out); }
   .stop-row button.remove {
     width: 44px; height: 48px; border-radius: 999px; border: none;
     background: var(--bg-card); color: var(--text-muted); font-size: 18px; flex-shrink: 0;
-    box-shadow: 0 1px 2px rgba(31,27,22,0.06), 0 4px 14px rgba(31,27,22,0.06);
+    box-shadow: var(--shadow-pill);
     transition: transform 160ms var(--ease-out);
   }
   .stop-row button.remove:active { transform: scale(0.9); }
   button.secondary {
     background: var(--bg-card); color: var(--text); font-weight: 700;
-    box-shadow: 0 1px 2px rgba(31,27,22,0.06), 0 4px 14px rgba(31,27,22,0.06);
+    box-shadow: var(--shadow-pill);
     margin-bottom: 20px;
   }
   .saved-row { display: flex; gap: 8px; }
@@ -178,31 +198,34 @@
   }
 
   .tabbar {
-    position: fixed; left: 0; right: 0; bottom: 0;
+    position: fixed; left: 14px; right: 14px; bottom: calc(12px + env(safe-area-inset-bottom));
     display: flex;
-    background: rgba(250, 243, 234, 0.9);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 999px;
+    box-shadow: 0 6px 28px rgba(20,18,14,0.14), 0 1px 3px rgba(20,18,14,0.08);
+    padding: 8px 8px;
     z-index: 100;
   }
   .tab-btn {
     flex: 1; width: auto; height: auto;
     background: none; border: none;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
-    color: #b5a793; font-size: 11px; font-weight: 600;
-    padding: 4px 0;
+    color: #a7a196; font-size: 11px; font-weight: 700;
+    padding: 6px 0;
+    border-radius: 999px;
     transition: color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
-  .tab-btn svg { width: 24px; height: 24px; }
+  .tab-btn svg { width: 23px; height: 23px; }
   .tab-btn.active { color: var(--accent); }
-  .tab-btn:active { transform: scale(0.94); }
+  .tab-btn:active { transform: scale(0.9); }
 
   #savePanel {
     background: var(--bg-card); border-radius: var(--radius-md);
     padding: 16px 16px 4px; margin: 0 0 20px;
-    box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
+    box-shadow: var(--shadow-soft);
   }
   .cover-preview-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   .cover-preview-row img { width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover; }
@@ -232,11 +255,53 @@
   .saved-card-delete:active { transform: scale(0.88); }
   .empty-hint { color: var(--text-muted); font-size: 14px; margin-top: 32px; text-align: center; line-height: 1.5; }
   .saved-card-count { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+
+  /* --- Perfil --- */
+  #profileHeader { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 20px 0 8px; }
+  .profile-photo {
+    width: 84px; height: 84px; border-radius: 50%;
+    background-color: var(--accent); background-size: cover; background-position: center;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 34px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(31,27,22,0.15); position: relative;
+  }
+  .profile-photo::after {
+    content: '📷'; position: absolute; bottom: -2px; right: -2px;
+    width: 26px; height: 26px; border-radius: 50%; background: var(--bg-card);
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    box-shadow: 0 1px 4px rgba(31,27,22,0.2);
+  }
+  .profile-name-row { display: flex; align-items: center; gap: 6px; }
+  #profileName { font-size: 19px; font-weight: 800; }
+  .profile-edit {
+    width: auto; height: auto; background: none; border: none; color: var(--text-muted);
+    font-size: 13px; padding: 4px;
+  }
+
+  /* --- Explorar --- */
+  .explore-card {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-card); border-radius: var(--radius-md); padding: 12px 14px; margin-top: 12px;
+    box-shadow: var(--shadow-soft);
+    animation: cardIn 320ms var(--ease-out) both; transition: transform 160ms var(--ease-out);
+  }
+  .explore-card:active { transform: scale(0.98); }
+  .explore-thumb {
+    flex-shrink: 0; width: 54px; height: 54px; border-radius: 12px;
+    background-size: cover; background-position: center;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; font-weight: 800;
+  }
+  .explore-info { flex: 1; min-width: 0; }
+  .explore-name { font-weight: 700; font-size: 14px; }
+  .explore-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .explore-city-tag { display: inline-block; background: var(--accent-soft); color: var(--accent); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-right: 6px; }
+  .explore-go { flex-shrink: 0; width: auto; height: auto; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; padding: 8px 12px; border-radius: 999px; }
+  .explore-note { font-size: 11px; color: var(--text-muted); background: #f5efe6; border-radius: 10px; padding: 10px 12px; margin-top: 14px; line-height: 1.4; }
   .saved-grid.list-mode { grid-template-columns: 1fr; }
   .back-btn { margin-bottom: 0; height: 44px; font-size: 14px; }
   .day-card {
     background: var(--bg-card); border-radius: var(--radius-md); padding: 14px 16px;
-    box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
+    box-shadow: var(--shadow-soft);
     display: flex; align-items: center; gap: 10px;
     animation: cardIn 320ms var(--ease-out) both;
     transition: transform 160ms var(--ease-out);
@@ -255,7 +320,7 @@
   /* --- Modo "en ruta" --- */
   .progress-card {
     background: var(--bg-card); border-radius: var(--radius-md); padding: 14px 16px;
-    box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
+    box-shadow: var(--shadow-soft);
   }
   .progress-text { font-weight: 800; font-size: 14px; margin-bottom: 9px; }
   .progress-bar { height: 8px; background: #f5efe6; border-radius: 999px; overflow: hidden; }
@@ -263,7 +328,7 @@
   .ruta-stop {
     display: flex; align-items: flex-start; gap: 12px;
     background: var(--bg-card); border-radius: var(--radius-md); padding: 13px 15px;
-    box-shadow: 0 1px 2px rgba(31,27,22,0.05), 0 6px 18px rgba(31,27,22,0.06);
+    box-shadow: var(--shadow-soft);
     animation: cardIn 320ms var(--ease-out) both;
   }
   .ruta-stop.done { opacity: 0.5; }
@@ -305,7 +370,7 @@
 </head>
 <body>
 <div id="tab-optimizer" class="tab-panel">
-<h1>RutaOpt</h1>
+<h1>route.io</h1>
 <p class="sub">Optimiza el orden de tus paradas. Cada tramo abre Google Maps con el transporte público real.</p>
 
 <label for="origin">Punto de partida</label>
@@ -353,10 +418,25 @@
 <div id="summary"></div>
 </div>
 
-<div id="tab-saved" class="tab-panel hidden">
-<h1 id="savedTitle">Viajes</h1>
+<div id="tab-profile" class="tab-panel hidden">
+<div id="profileHeader">
+  <div id="profilePhoto" class="profile-photo"></div>
+  <div class="profile-name-row">
+    <span id="profileName">Viajero</span>
+    <button type="button" id="editNameBtn" class="profile-edit" title="Editar nombre">✎</button>
+  </div>
+</div>
+<input type="file" id="profilePhotoInput" accept="image/*" class="hidden">
+<h1 id="savedTitle">Mis viajes</h1>
 <p class="sub" id="savedSub">Toca un viaje para ver sus días.</p>
 <div id="savedGrid" class="saved-grid"></div>
+</div>
+
+<div id="tab-explore" class="tab-panel hidden">
+<h1>Explorar</h1>
+<p class="sub">Busca una ciudad y reutiliza rutas que otros viajeros han compartido.</p>
+<input id="exploreSearch" type="text" placeholder="Ej: Tokio, Barcelona, París…" autocomplete="off" />
+<div id="exploreResults"></div>
 </div>
 
 <nav class="tabbar">
@@ -364,9 +444,13 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
     Route.io
   </button>
-  <button type="button" class="tab-btn" data-tab="saved">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>
-    Viajes
+  <button type="button" class="tab-btn" data-tab="explore">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="16.5 7.5 13 13 7.5 16.5 11 11"/></svg>
+    Explorar
+  </button>
+  <button type="button" class="tab-btn" data-tab="profile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+    Perfil
   </button>
 </nav>
 
@@ -586,7 +670,14 @@ function addStopRow(placeholder, prefill){
   removeBtn.className = 'remove';
   removeBtn.textContent = '×';
   removeBtn.addEventListener('click', () => {
-    if(stopsContainer.children.length > 1) row.remove();
+    if(stopsContainer.children.length <= 1) return;
+    // Colapsa la fila (altura + opacidad) antes de quitarla del DOM para que las
+    // demás suban suavemente en vez de dar un salto brusco.
+    row.style.maxHeight = row.offsetHeight + 'px';
+    void row.offsetHeight; // fuerza reflow para que la transición parta de esa altura
+    row.classList.add('removing');
+    row.style.maxHeight = '0px';
+    setTimeout(() => row.remove(), 240);
   });
 
   row.appendChild(wrapper);
@@ -661,15 +752,156 @@ if(lastRoute && ((lastRoute.origin && lastRoute.origin.value) || (lastRoute.stop
 document.getElementById('addStopBtn').addEventListener('click', () => addStopRow());
 attachAutocomplete(document.getElementById('origin'), document.getElementById('originDropdown'));
 
-// --- Pestañas (Route.io / Rutas guardadas) ---
+// --- Pestañas (Route.io / Explorar / Perfil) ---
 function setActiveTab(tab){
   document.getElementById('tab-optimizer').classList.toggle('hidden', tab !== 'optimizer');
-  document.getElementById('tab-saved').classList.toggle('hidden', tab !== 'saved');
+  document.getElementById('tab-profile').classList.toggle('hidden', tab !== 'profile');
+  document.getElementById('tab-explore').classList.toggle('hidden', tab !== 'explore');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  if(tab === 'saved') renderSavedGrid();
+  if(tab === 'profile'){ renderProfileHeader(); renderSavedGrid(); }
+  if(tab === 'explore') renderExplore();
 }
 document.querySelectorAll('.tab-btn').forEach(b => {
   b.addEventListener('click', () => setActiveTab(b.dataset.tab));
+});
+
+// --- Perfil (nombre + foto). Hoy en localStorage; el día que haya cuentas,
+// getProfile/saveProfile pasarán por la API sin tocar el resto de la app. ---
+const PROFILE_KEY = 'rutaopt:profile';
+function getProfile(){ return readJSON(PROFILE_KEY, { name: 'Viajero', photo: null }); }
+function saveProfile(p){ writeJSON(PROFILE_KEY, p); }
+
+function renderProfileHeader(){
+  const p = getProfile();
+  const photo = document.getElementById('profilePhoto');
+  if(p.photo){ photo.style.backgroundImage = 'url(' + p.photo + ')'; photo.textContent = ''; }
+  else { photo.style.backgroundImage = ''; photo.textContent = (p.name.trim()[0] || '?').toUpperCase(); }
+  document.getElementById('profileName').textContent = p.name;
+}
+
+const profilePhotoInput = document.getElementById('profilePhotoInput');
+document.getElementById('profilePhoto').addEventListener('click', () => profilePhotoInput.click());
+profilePhotoInput.addEventListener('change', async () => {
+  const file = profilePhotoInput.files[0];
+  if(!file) return;
+  try {
+    const p = getProfile();
+    p.photo = await resizeImageFile(file, 320, 0.75);
+    saveProfile(p);
+    renderProfileHeader();
+  } catch(err){ statusEl.textContent = 'No se pudo procesar la foto.'; }
+});
+
+document.getElementById('editNameBtn').addEventListener('click', () => {
+  const p = getProfile();
+  const name = prompt('Tu nombre de usuario:', p.name);
+  if(name === null) return;
+  p.name = name.trim() || 'Viajero';
+  saveProfile(p);
+  renderProfileHeader();
+});
+
+// --- Explorar: rutas públicas. Hoy son ejemplos curados en el propio archivo;
+// el día que haya backend, searchPublishedRoutes() hará fetch a la API (misma
+// forma de datos) y el resto de la pantalla no cambia. Reutilizar una ruta la
+// carga en Route.io para verla, ajustarla y guardarla como un día propio. ---
+const PUBLISHED_ROUTES = [
+  {
+    id: 'pub-tokyo-1', name: 'Tokio imprescindible', city: 'Tokio', author: 'RutaOpt', roundtrip: true,
+    origin: { value: 'Shinjuku Station, Tokyo', lat: '35.6896', lon: '139.7006' },
+    stops: [
+      { value: 'Meiji Jingu, Tokyo', lat: '35.6764', lon: '139.6993' },
+      { value: 'Shibuya Crossing, Tokyo', lat: '35.6595', lon: '139.7005' },
+      { value: 'Sensō-ji, Tokyo', lat: '35.7148', lon: '139.7967' },
+      { value: 'Tokyo Tower, Tokyo', lat: '35.6586', lon: '139.7454' }
+    ]
+  },
+  {
+    id: 'pub-bcn-1', name: 'Barcelona clásica', city: 'Barcelona', author: 'RutaOpt', roundtrip: true,
+    origin: { value: 'Plaça de Catalunya, Barcelona', lat: '41.3870', lon: '2.1699' },
+    stops: [
+      { value: 'Casa Batlló, Barcelona', lat: '41.3916', lon: '2.1649' },
+      { value: 'Sagrada Família, Barcelona', lat: '41.4036', lon: '2.1744' },
+      { value: 'Park Güell, Barcelona', lat: '41.4145', lon: '2.1527' },
+      { value: 'Gran Teatre del Liceu, Barcelona', lat: '41.3809', lon: '2.1733' }
+    ]
+  },
+  {
+    id: 'pub-paris-1', name: 'París esencial', city: 'París', author: 'RutaOpt', roundtrip: false,
+    origin: { value: 'Tour Eiffel, Paris', lat: '48.8584', lon: '2.2945' },
+    stops: [
+      { value: 'Arc de Triomphe, Paris', lat: '48.8738', lon: '2.2950' },
+      { value: 'Musée du Louvre, Paris', lat: '48.8606', lon: '2.3376' },
+      { value: 'Cathédrale Notre-Dame, Paris', lat: '48.8530', lon: '2.3499' },
+      { value: 'Sacré-Cœur, Paris', lat: '48.8867', lon: '2.3431' }
+    ]
+  }
+];
+
+function searchPublishedRoutes(query){
+  const q = (query || '').trim().toLowerCase();
+  if(!q) return PUBLISHED_ROUTES;
+  return PUBLISHED_ROUTES.filter(r =>
+    r.city.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
+}
+
+function renderExplore(){
+  const box = document.getElementById('exploreResults');
+  const results = searchPublishedRoutes(document.getElementById('exploreSearch').value);
+  box.innerHTML = '';
+
+  if(!results.length){
+    const hint = document.createElement('p');
+    hint.className = 'empty-hint';
+    hint.textContent = 'No hay rutas publicadas para esa búsqueda todavía.';
+    box.appendChild(hint);
+  }
+
+  results.forEach(route => {
+    const card = document.createElement('div');
+    card.className = 'explore-card';
+
+    const thumb = document.createElement('div');
+    thumb.className = 'explore-thumb';
+    thumb.style.backgroundColor = coverColorFor(route.city);
+    thumb.textContent = (route.city.trim()[0] || '?').toUpperCase();
+    card.appendChild(thumb);
+
+    const info = document.createElement('div');
+    info.className = 'explore-info';
+    info.innerHTML =
+      '<div class="explore-name">' + route.name.replace(/</g,'&lt;') + '</div>' +
+      '<div class="explore-meta"><span class="explore-city-tag">' + route.city.replace(/</g,'&lt;') + '</span>' +
+        (route.stops.length + 1) + ' lugares · por ' + route.author.replace(/</g,'&lt;') + '</div>';
+    card.appendChild(info);
+
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'explore-go';
+    go.textContent = 'Usar';
+    const use = () => {
+      applyFormState({ origin: route.origin, stops: route.stops, roundtrip: route.roundtrip });
+      setActiveTab('optimizer');
+      runOptimize();
+    };
+    go.addEventListener('click', (e) => { e.stopPropagation(); use(); });
+    card.appendChild(go);
+
+    card.addEventListener('click', use);
+    box.appendChild(card);
+  });
+
+  // Nota honesta: hoy son rutas de ejemplo, no publicadas por usuarios reales.
+  const note = document.createElement('div');
+  note.className = 'explore-note';
+  note.textContent = 'Estas son rutas de ejemplo curadas. Publicar y compartir rutas entre usuarios reales requerirá conectar la app a un servidor (próxima fase).';
+  box.appendChild(note);
+}
+
+let exploreTimer = null;
+document.getElementById('exploreSearch').addEventListener('input', () => {
+  clearTimeout(exploreTimer);
+  exploreTimer = setTimeout(renderExplore, 150);
 });
 
 // --- Guardar ruta actual, con foto de portada (elegida por el usuario o generada por IA) ---
@@ -826,7 +1058,10 @@ function renderSavedGrid(){
   const sub = document.getElementById('savedSub');
   const trips = getTrips();
 
+  // La cabecera de perfil (foto + nombre) solo se ve en el nivel superior (rejilla
+  // de viajes); al entrar en un viaje/día se oculta para dar espacio.
   const openTrip = openTripId && trips.find(t => t.id === openTripId);
+  document.getElementById('profileHeader').classList.toggle('hidden', !!openTrip);
   if(openTrip){
     const openDay = openDayId && openTrip.days.find(d => d.id === openDayId);
     if(openDay){ renderEnRuta(openTrip, openDay); return; }
@@ -837,7 +1072,7 @@ function renderSavedGrid(){
   openTripId = null;
   openDayId = null;
 
-  title.textContent = 'Viajes';
+  title.textContent = 'Mis viajes';
   sub.textContent = 'Toca un viaje para ver sus días.';
   grid.classList.remove('list-mode');
   grid.innerHTML = '';
@@ -845,8 +1080,15 @@ function renderSavedGrid(){
   if(!trips.length){
     const hint = document.createElement('p');
     hint.className = 'empty-hint';
-    hint.textContent = 'Todavía no has guardado ningún viaje. Ve a "Route.io", arma tu ruta y pulsa "Guardar esta ruta".';
+    hint.textContent = 'Todavía no has guardado ningún viaje. Arma tu ruta y pulsa "Guardar esta ruta".';
     grid.appendChild(hint);
+    const cta = document.createElement('button');
+    cta.type = 'button';
+    cta.className = 'secondary';
+    cta.style.marginTop = '14px';
+    cta.textContent = '+ Crear mi primera ruta';
+    cta.addEventListener('click', () => setActiveTab('optimizer'));
+    grid.appendChild(cta);
     return;
   }
 
@@ -1325,7 +1567,9 @@ async function renderRouteMap(orderedPoints){
   });
 }
 
+let optimizing = false;
 async function runOptimize(){
+  if(optimizing) return; // guarda contra doble-pulsación mientras trabaja
   resultsEl.innerHTML = '';
   summaryEl.style.display = 'none';
   mapEl.style.display = 'none';
@@ -1351,6 +1595,15 @@ async function runOptimize(){
   }
 
   writeJSON(LAST_ROUTE_KEY, captureFormState());
+
+  // Estado de carga: el usuario ve al instante que "se le oyó", y bloqueamos
+  // re-entradas mientras esperamos a OSRM (1-4s).
+  const btn = document.getElementById('optimizeBtn');
+  const btnLabel = btn.textContent;
+  optimizing = true;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Optimizando…';
+  let ok = false;
 
   try {
     const origin = resolvePoint(originInput);
@@ -1408,9 +1661,18 @@ async function runOptimize(){
     statusEl.textContent = '';
     summaryEl.style.display = 'block';
     summaryEl.textContent = 'Orden optimizado. Total referencia en coche: ~' + totalMin + ' min, ' + totalKm.toFixed(1) + ' km. Toca cada enlace para ver metro, líneas y tiempos reales.';
+    ok = true;
   } catch(err){
     statusEl.textContent = 'Error: ' + err.message;
+  } finally {
+    optimizing = false;
+    btn.disabled = false;
+    btn.textContent = btnLabel;
   }
+
+  // Al terminar bien, llevamos el mapa a la vista: si no, el resultado queda bajo
+  // el pliegue y parece que no ha pasado nada.
+  if(ok) requestAnimationFrame(() => mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 document.getElementById('optimizeBtn').addEventListener('click', runOptimize);
