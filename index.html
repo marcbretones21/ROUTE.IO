@@ -152,12 +152,17 @@
   /* Aviso: el campo tiene texto pero no se ha elegido ningún lugar de la lista. */
   .ac-wrapper.needs-select input { box-shadow: 0 0 0 2px #d1544a; }
   .stop-row {
-    display: flex; gap: 8px; align-items: flex-start; overflow: hidden;
-    animation: stopIn 260ms var(--ease-out) both;
+    display: flex; gap: 8px; align-items: flex-start;
+    /* 'backwards' (no 'both'): tras la entrada la fila vuelve a su estado base sin
+       transform residual. Con 'both' quedaba un translateY(0) que crea stacking
+       context y atrapaba el desplegable de sugerencias bajo el botón "Añadir parada". */
+    animation: stopIn 260ms var(--ease-out) backwards;
     transition: max-height 240ms var(--ease-out), opacity 190ms var(--ease-out), transform 190ms var(--ease-out);
   }
   @keyframes stopIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-  .stop-row.removing { opacity: 0; transform: scale(0.96); }
+  /* overflow:hidden SOLO al colapsar (para que el max-height recorte); en reposo
+     debe ser visible o recortaría el desplegable de sugerencias que sobresale. */
+  .stop-row.removing { opacity: 0; transform: scale(0.96); overflow: hidden; }
   .stop-row.removing .ac-wrapper { margin-bottom: 0; transition: margin-bottom 240ms var(--ease-out); }
   .stop-row button.remove {
     width: 44px; height: 48px; border-radius: 999px; border: none;
@@ -182,6 +187,16 @@
     display: flex; align-items: center; justify-content: center;
     border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
+  .resto-marker {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #e8590c; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .resto-popup { font-size: 13px; line-height: 1.4; }
+  .resto-popup b { font-size: 14px; }
+  .resto-popup .rp-comment { color: #e8590c; font-weight: 600; }
+  .resto-popup a { display: block; margin-top: 5px; color: var(--accent); font-weight: 700; text-decoration: none; }
   /* Marcadores especiales de inicio/fin: casa con puerta + etiqueta START/END. */
   .route-home { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .route-home-icon {
@@ -354,6 +369,43 @@
   }
   .reset-progress { background: none; border: none; color: var(--text-muted); font-size: 12px; font-weight: 600; text-decoration: underline; height: auto; padding: 6px 0; width: auto; margin: 0 auto; display: block; }
 
+  /* Sección inferior del modo en ruta: mini-mapa izquierda + restaurantes cerca derecha. */
+  .enruta-bottom { display: flex; gap: 10px; margin-top: 16px; align-items: stretch; }
+  .enruta-map { flex: 1 1 50%; min-width: 0; height: 230px; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft); }
+  .enruta-restos { flex: 1 1 50%; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .enruta-restos-title { font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+  .enruta-resto {
+    background: var(--bg-card); border-radius: 12px; padding: 9px 11px; box-shadow: var(--shadow-pill);
+    text-decoration: none; color: var(--text); display: flex; align-items: center; gap: 8px;
+  }
+  .enruta-resto:active { transform: scale(0.97); }
+  .enruta-resto .er-dot { flex-shrink: 0; }
+  .enruta-resto .er-name { font-weight: 700; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .enruta-resto .er-comment { font-size: 11px; color: #e8590c; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .enruta-restos-empty { font-size: 12px; color: var(--text-muted); line-height: 1.4; align-self: center; }
+
+  /* --- Lista de restaurantes del viaje --- */
+  .resto-search-wrap { position: relative; margin-bottom: 16px; }
+  .resto-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-card); border-radius: var(--radius-md); padding: 11px 13px;
+    box-shadow: var(--shadow-soft); animation: cardIn 300ms var(--ease-out) both;
+  }
+  .resto-dot { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: #fbe3d3; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .resto-body { flex: 1; min-width: 0; }
+  .resto-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .resto-comment-input {
+    width: 100%; margin: 4px 0 0; padding: 5px 0; font-size: 12px; border: none; background: none;
+    box-shadow: none; border-radius: 0; color: var(--text-muted); font-weight: 600;
+  }
+  .resto-comment-input:focus { box-shadow: none; }
+  .resto-comment-input::placeholder { color: #c3bdb2; font-weight: 500; }
+  .resto-del {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+    background: #f5efe6; color: var(--text-muted); border: none; font-size: 15px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+
   @keyframes cardIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
@@ -430,6 +482,15 @@
 <h1 id="savedTitle">Mis viajes</h1>
 <p class="sub" id="savedSub">Toca un viaje para ver sus días.</p>
 <div id="savedGrid" class="saved-grid"></div>
+<div id="backupSection">
+  <div class="backup-label">Copia de seguridad</div>
+  <p class="backup-note">Tus viajes se guardan solo en este iPhone. Exporta una copia y guárdala en Archivos o iCloud para no perderlos si el navegador limpia sus datos.</p>
+  <div class="saved-row">
+    <button type="button" id="exportBtn" class="secondary small">⬇️ Exportar copia</button>
+    <button type="button" id="importBtn" class="secondary small">⬆️ Restaurar copia</button>
+  </div>
+  <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+</div>
 </div>
 
 <div id="tab-explore" class="tab-panel hidden">
@@ -554,7 +615,7 @@ function resolvePoint(input){
   };
 }
 
-function attachAutocomplete(input, dropdown){
+function attachAutocomplete(input, dropdown, onSelect){
   let debounceTimer = null;
   let abortController = null;
 
@@ -631,6 +692,7 @@ function attachAutocomplete(input, dropdown){
         setConfirmed(input, true);
         dropdown.classList.remove('open');
         dropdown.innerHTML = '';
+        if(onSelect) onSelect(item);
       });
       dropdown.appendChild(row);
     }
@@ -880,6 +942,7 @@ function renderExplore(){
     go.className = 'explore-go';
     go.textContent = 'Usar';
     const use = () => {
+      activeTripId = null; // ruta de Explorar, no de un viaje: sin overlay de restaurantes
       applyFormState({ origin: route.origin, stops: route.stops, roundtrip: route.roundtrip });
       setActiveTab('optimizer');
       runOptimize();
@@ -1051,6 +1114,11 @@ document.getElementById('confirmSaveBtn').addEventListener('click', () => {
 // --- Pestaña "Viajes": cuadrícula de viajes → lista de días → modo "en ruta". ---
 let openTripId = null;
 let openDayId = null;
+let restaurantsMode = false;
+// Viaje cuyos restaurantes se superponen al mapa del optimizador (se fija al abrir
+// un día desde un viaje; null cuando optimizas una ruta suelta).
+let activeTripId = null;
+const RESTAURANT_NEAR_KM = 1.0; // un restaurante se marca si cae a <=1km (~12 min andando) de alguna parada
 
 function renderSavedGrid(){
   const grid = document.getElementById('savedGrid');
@@ -1063,6 +1131,7 @@ function renderSavedGrid(){
   const openTrip = openTripId && trips.find(t => t.id === openTripId);
   document.getElementById('profileHeader').classList.toggle('hidden', !!openTrip);
   if(openTrip){
+    if(restaurantsMode){ renderTripRestaurants(openTrip); return; }
     const openDay = openDayId && openTrip.days.find(d => d.id === openDayId);
     if(openDay){ renderEnRuta(openTrip, openDay); return; }
     openDayId = null;
@@ -1071,6 +1140,7 @@ function renderSavedGrid(){
   }
   openTripId = null;
   openDayId = null;
+  restaurantsMode = false;
 
   title.textContent = 'Mis viajes';
   sub.textContent = 'Toca un viaje para ver sus días.';
@@ -1155,6 +1225,15 @@ function renderTripDays(trip){
   backBtn.addEventListener('click', () => { openTripId = null; renderSavedGrid(); });
   grid.appendChild(backBtn);
 
+  const restoBtn = document.createElement('button');
+  restoBtn.type = 'button';
+  restoBtn.className = 'secondary';
+  restoBtn.style.marginTop = '10px';
+  const nResto = (trip.restaurants || []).length;
+  restoBtn.textContent = '🍴 Lista de restaurantes' + (nResto ? ' (' + nResto + ')' : '');
+  restoBtn.addEventListener('click', () => { restaurantsMode = true; renderSavedGrid(); });
+  grid.appendChild(restoBtn);
+
   if(!trip.days.length){
     const hint = document.createElement('p');
     hint.className = 'empty-hint';
@@ -1184,10 +1263,11 @@ function renderTripDays(trip){
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.className = 'edit-day';
-    editBtn.textContent = '✎';
-    editBtn.title = 'Editar este día en el optimizador';
+    editBtn.textContent = '🗺️';
+    editBtn.title = 'Ver este día en el mapa (con restaurantes cerca)';
     editBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      activeTripId = trip.id; // para superponer los restaurantes del viaje al mapa
       applyFormState(day);
       setActiveTab('optimizer');
       runOptimize();
@@ -1214,6 +1294,99 @@ function renderTripDays(trip){
       openDayId = day.id;
       renderSavedGrid();
     });
+
+    grid.appendChild(row);
+  });
+}
+
+// --- Lista de restaurantes del viaje (se añaden con el mismo buscador que las
+// paradas; se geocodifican al seleccionarlos y se guardan a nivel de viaje). ---
+function renderTripRestaurants(trip){
+  const grid = document.getElementById('savedGrid');
+  document.getElementById('savedTitle').textContent = 'Restaurantes';
+  document.getElementById('savedSub').textContent = trip.name + ' — saldrán en el mapa cerca de las paradas de cada día.';
+  grid.classList.add('list-mode');
+  grid.innerHTML = '';
+
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'secondary back-btn';
+  backBtn.textContent = '← ' + trip.name;
+  backBtn.addEventListener('click', () => { restaurantsMode = false; renderSavedGrid(); });
+  grid.appendChild(backBtn);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'ac-wrapper resto-search-wrap';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = '🔎 Busca un restaurante para añadir…';
+  input.autocomplete = 'off';
+  const dd = document.createElement('div');
+  dd.className = 'ac-dropdown';
+  wrap.appendChild(input);
+  wrap.appendChild(dd);
+  // Al seleccionar una sugerencia, la añadimos al viaje y limpiamos para el siguiente.
+  attachAutocomplete(input, dd, (item) => {
+    const trips = getTrips();
+    const t = trips.find(x => x.id === trip.id);
+    if(!t) return;
+    t.restaurants = t.restaurants || [];
+    t.restaurants.push({ id: 'x' + Date.now(), name: item.display_name, lat: item.lat, lon: item.lon, comment: '' });
+    saveTrips(trips);
+    renderSavedGrid();
+    setTimeout(() => { const el = document.querySelector('.resto-search-wrap input'); if(el) el.focus(); }, 0);
+  });
+  grid.appendChild(wrap);
+
+  const list = trip.restaurants || [];
+  if(!list.length){
+    const hint = document.createElement('p');
+    hint.className = 'empty-hint';
+    hint.textContent = 'Aún no has añadido restaurantes. Búscalos arriba y tócalos para añadirlos a este viaje.';
+    grid.appendChild(hint);
+    return;
+  }
+
+  list.forEach((r, idx) => {
+    const row = document.createElement('div');
+    row.className = 'resto-row';
+    row.style.animationDelay = Math.min(idx * 40, 240) + 'ms';
+
+    const dot = document.createElement('div');
+    dot.className = 'resto-dot';
+    dot.textContent = '🍴';
+    row.appendChild(dot);
+
+    const body = document.createElement('div');
+    body.className = 'resto-body';
+    const name = document.createElement('div');
+    name.className = 'resto-name';
+    name.textContent = r.name.split(',')[0];
+    const comment = document.createElement('input');
+    comment.type = 'text';
+    comment.className = 'resto-comment-input';
+    comment.placeholder = 'Comentario: sushi, ramen…';
+    comment.value = r.comment || '';
+    comment.addEventListener('change', () => {
+      const trips = getTrips();
+      const t = trips.find(x => x.id === trip.id);
+      const rr = t && (t.restaurants || []).find(x => x.id === r.id);
+      if(rr){ rr.comment = comment.value.trim(); saveTrips(trips); }
+    });
+    body.appendChild(name);
+    body.appendChild(comment);
+    row.appendChild(body);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'resto-del';
+    del.textContent = '×';
+    del.addEventListener('click', () => {
+      const trips = getTrips();
+      const t = trips.find(x => x.id === trip.id);
+      if(t){ t.restaurants = (t.restaurants || []).filter(x => x.id !== r.id); saveTrips(trips); renderSavedGrid(); }
+    });
+    row.appendChild(del);
 
     grid.appendChild(row);
   });
@@ -1357,6 +1530,57 @@ function renderEnRuta(trip, day){
     grid.appendChild(row);
   }
 
+  // --- Abajo: mini-mapa (izquierda) + restaurantes cercanos (derecha) ---
+  const bottom = document.createElement('div');
+  bottom.className = 'enruta-bottom';
+
+  if(!enrutaMapEl){
+    enrutaMapEl = document.createElement('div');
+    enrutaMapEl.className = 'enruta-map';
+  }
+  bottom.appendChild(enrutaMapEl);
+
+  const restos = document.createElement('div');
+  restos.className = 'enruta-restos';
+  const rtitle = document.createElement('div');
+  rtitle.className = 'enruta-restos-title';
+  rtitle.textContent = 'Restaurantes cerca';
+  restos.appendChild(rtitle);
+
+  const near = nearbyRestaurants(trip, it.points);
+  if(!near.length){
+    const empty = document.createElement('div');
+    empty.className = 'enruta-restos-empty';
+    empty.textContent = (trip.restaurants && trip.restaurants.length)
+      ? 'Ninguno de tu lista cae cerca de esta ruta.'
+      : 'Añade restaurantes al viaje para verlos aquí.';
+    restos.appendChild(empty);
+  } else {
+    near.forEach(r => {
+      const a = document.createElement('a');
+      a.className = 'enruta-resto';
+      a.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(r.name);
+      a.target = '_blank';
+      a.innerHTML = '<span class="er-dot">🍴</span><span style="min-width:0">' +
+        '<div class="er-name">' + r.name.split(',')[0].replace(/</g,'&lt;') + '</div>' +
+        (r.comment ? '<div class="er-comment">' + r.comment.replace(/</g,'&lt;') + '</div>' : '') +
+        '</span>';
+      restos.appendChild(a);
+    });
+  }
+  bottom.appendChild(restos);
+  grid.appendChild(bottom);
+
+  // Inicializa (una vez) o refresca el mini-mapa cuando ya está en el DOM.
+  requestAnimationFrame(() => {
+    if(!enrutaMap){
+      enrutaMap = L.map(enrutaMapEl, { zoomControl: false, attributionControl: false });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(enrutaMap);
+      enrutaLayer = L.layerGroup().addTo(enrutaMap);
+    }
+    refreshEnrutaMap(trip, day);
+  });
+
   if(doneCount > 0){
     const reset = document.createElement('button');
     reset.type = 'button';
@@ -1479,6 +1703,59 @@ const mapNoteEl = document.getElementById('mapNote');
 let leafletMap = null;
 let routeLayer = null;
 
+// Segunda instancia de Leaflet para el mini-mapa del modo "en ruta". El contenedor
+// (enrutaMapEl) es un nodo persistente: aunque renderEnRuta borre el grid en cada
+// toque de casilla, reutilizamos el MISMO nodo y la misma instancia, así las teselas
+// no se recargan de red cada vez.
+let enrutaMap = null;
+let enrutaMapEl = null;
+let enrutaLayer = null;
+
+// Devuelve los restaurantes del viaje que caen a <=RESTAURANT_NEAR_KM de algún punto.
+function nearbyRestaurants(trip, points){
+  return (trip.restaurants || []).filter(r => {
+    const rp = { lat: parseFloat(r.lat), lon: parseFloat(r.lon) };
+    return isFinite(rp.lat) && isFinite(rp.lon) && points.some(p => haversineKm(rp, { lat: +p.lat, lon: +p.lon }) <= RESTAURANT_NEAR_KM);
+  });
+}
+
+// Dibuja la ruta del día + los restaurantes cercanos en el mini-mapa del modo en ruta.
+function refreshEnrutaMap(trip, day){
+  if(!enrutaMap || !day.itinerary) return;
+  enrutaLayer.clearLayers();
+  const pts = day.itinerary.points;
+  const rt = day.itinerary.roundtrip;
+  const latlngs = pts.map(p => [p.lat, p.lon]);
+
+  pts.forEach((p, idx) => {
+    const isLast = idx === pts.length - 1;
+    if(rt && isLast) return;
+    const isEndpoint = idx === 0 || isLast;
+    const html = isEndpoint
+      ? '<div class="route-home-icon" style="width:24px;height:24px">' + HOUSE_SVG + '</div>'
+      : '<div class="route-marker-inner" style="width:22px;height:22px;font-size:11px">' + idx + '</div>';
+    const icon = L.divIcon({ className: '', html, iconSize: [24, 24], iconAnchor: [12, 12] });
+    L.marker([p.lat, p.lon], { icon }).addTo(enrutaLayer);
+  });
+
+  L.polyline(latlngs, { color: '#1e3fae', weight: 4, opacity: 0.9 }).addTo(enrutaLayer);
+
+  nearbyRestaurants(trip, pts).forEach(r => {
+    const icon = L.divIcon({ className: '', html: '<div class="resto-marker" style="width:24px;height:24px;font-size:12px">🍴</div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+    const q = encodeURIComponent(r.name);
+    const popup =
+      '<div class="resto-popup"><b>' + r.name.split(',')[0].replace(/</g,'&lt;') + '</b>' +
+      (r.comment ? '<div class="rp-comment">' + r.comment.replace(/</g,'&lt;') + '</div>' : '') +
+      '<a href="https://www.google.com/maps/search/?api=1&query=' + q + '" target="_blank">Ver ficha ↗</a>' +
+      '<a href="https://www.google.com/maps/dir/?api=1&destination=' + q + '&travelmode=walking" target="_blank">Cómo llegar ↗</a>' +
+      '</div>';
+    L.marker([parseFloat(r.lat), parseFloat(r.lon)], { icon }).addTo(enrutaLayer).bindPopup(popup);
+  });
+
+  enrutaMap.invalidateSize();
+  enrutaMap.fitBounds(L.latLngBounds(latlngs), { padding: [18, 18] });
+}
+
 // Casa con puerta para los marcadores de inicio/fin.
 const HOUSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 11.5 12 4.5l8.5 7"/><path d="M6 10.5V19.5h12V10.5"/><path d="M10 19.5v-4.5h4v4.5"/></svg>';
 
@@ -1556,6 +1833,25 @@ async function renderRouteMap(orderedPoints){
   );
   const fullPath = legGeometries.flat();
   L.polyline(fullPath, { color: '#1e3fae', weight: 5, opacity: 0.95 }).addTo(routeLayer);
+
+  // Restaurantes del viaje activo que caen cerca de alguna parada del día.
+  if(activeTripId){
+    const trip = getTrips().find(t => t.id === activeTripId);
+    (trip && trip.restaurants || []).forEach(r => {
+      const rp = { lat: parseFloat(r.lat), lon: parseFloat(r.lon) };
+      if(!isFinite(rp.lat) || !isFinite(rp.lon)) return;
+      if(!orderedPoints.some(p => haversineKm(rp, p) <= RESTAURANT_NEAR_KM)) return;
+      const icon = L.divIcon({ className: '', html: '<div class="resto-marker">🍴</div>', iconSize: [28,28], iconAnchor: [14,14] });
+      const q = encodeURIComponent(r.name);
+      const popup =
+        '<div class="resto-popup"><b>' + r.name.split(',')[0].replace(/</g,'&lt;') + '</b>' +
+        (r.comment ? '<div class="rp-comment">' + r.comment.replace(/</g,'&lt;') + '</div>' : '') +
+        '<a href="https://www.google.com/maps/search/?api=1&query=' + q + '" target="_blank">Ver ficha en Google Maps ↗</a>' +
+        '<a href="https://www.google.com/maps/dir/?api=1&destination=' + q + '&travelmode=walking" target="_blank">Cómo llegar ↗</a>' +
+        '</div>';
+      L.marker([rp.lat, rp.lon], { icon }).addTo(routeLayer).bindPopup(popup);
+    });
+  }
 
   // El contenedor acaba de pasar de display:none a block, así que su tamaño
   // todavía no es fiable en este mismo tick; invalidateSize() debe ejecutarse
