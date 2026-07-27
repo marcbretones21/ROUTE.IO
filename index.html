@@ -293,6 +293,11 @@
     font-size: 13px; padding: 4px;
   }
 
+  /* --- Copia de seguridad --- */
+  #backupSection { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 20px; }
+  .backup-label { font-size: 10px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .backup-note { font-size: 12px; color: var(--text-muted); line-height: 1.45; margin: 0 0 12px; }
+
   /* --- Explorar --- */
   .explore-card {
     display: flex; align-items: center; gap: 12px;
@@ -490,6 +495,7 @@
     <button type="button" id="importBtn" class="secondary small">⬆️ Restaurar copia</button>
   </div>
   <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+  <p id="backupStatus" class="backup-note" style="margin-top:10px; min-height:16px;"></p>
 </div>
 </div>
 
@@ -615,7 +621,7 @@ function resolvePoint(input){
   };
 }
 
-function attachAutocomplete(input, dropdown, onSelect){
+function attachAutocomplete(input, dropdown, onSelect, biasFn){
   let debounceTimer = null;
   let abortController = null;
 
@@ -654,7 +660,12 @@ function attachAutocomplete(input, dropdown, onSelect){
   });
 
   async function runSearch(query){
-    const cacheKey = geocodeCacheKey(query, 5);
+    // lang=en → nombres en alfabeto latino legible (Photon no soporta español).
+    // Sesgo por ubicación (lat/lon del origen o del viaje) → los sitios cercanos
+    // suben en el ranking, así se encuentran mejor restaurantes/hoteles de la zona.
+    const bias = biasFn ? biasFn() : null;
+    // La caché depende también del sesgo (misma palabra cerca de Tokio ≠ cerca de Osaka).
+    const cacheKey = geocodeCacheKey(query + (bias ? '@' + Math.round(bias.lat * 10) + ',' + Math.round(bias.lon * 10) : ''), 5);
     const cached = geocodeCacheGet(cacheKey);
     if(cached !== null){
       renderSuggestions(cached);
@@ -665,7 +676,8 @@ function attachAutocomplete(input, dropdown, onSelect){
     abortController = new AbortController();
     let data;
     try {
-      const url = 'https://photon.komoot.io/api/?limit=5&q=' + encodeURIComponent(query);
+      let url = 'https://photon.komoot.io/api/?limit=5&lang=en&q=' + encodeURIComponent(query);
+      if(bias) url += '&lat=' + bias.lat + '&lon=' + bias.lon;
       const res = await fetch(url, { signal: abortController.signal });
       data = normalizePhotonResults(await res.json());
     } catch(err){
@@ -724,7 +736,7 @@ function addStopRow(placeholder, prefill){
   dropdown.className = 'ac-dropdown';
   wrapper.appendChild(input);
   wrapper.appendChild(dropdown);
-  attachAutocomplete(input, dropdown);
+  attachAutocomplete(input, dropdown, null, originBiasCoord);
   setConfirmed(input, isConfirmed(input));
 
   const removeBtn = document.createElement('button');
@@ -812,7 +824,22 @@ if(lastRoute && ((lastRoute.origin && lastRoute.origin.value) || (lastRoute.stop
   stopPlaceholders.forEach(p => addStopRow(p));
 }
 document.getElementById('addStopBtn').addEventListener('click', () => addStopRow());
-attachAutocomplete(document.getElementById('origin'), document.getElementById('originDropdown'));
+
+// Sesgo de búsqueda: si el origen ya está confirmado, buscamos cerca de él (así
+// las paradas/restaurantes de la misma ciudad salen antes que homónimos lejanos).
+function originBiasCoord(){
+  const o = document.getElementById('origin');
+  if(o && o.dataset.lat && o.dataset.lon) return { lat: parseFloat(o.dataset.lat), lon: parseFloat(o.dataset.lon) };
+  return null;
+}
+function tripBiasCoord(trip){
+  for(const d of (trip.days || [])){ if(d.origin && d.origin.lat && d.origin.lon) return { lat: parseFloat(d.origin.lat), lon: parseFloat(d.origin.lon) }; }
+  const r = (trip.restaurants || [])[0];
+  if(r && r.lat && r.lon) return { lat: parseFloat(r.lat), lon: parseFloat(r.lon) };
+  return null;
+}
+
+attachAutocomplete(document.getElementById('origin'), document.getElementById('originDropdown'), null, originBiasCoord);
 
 // --- Pestañas (Route.io / Explorar / Perfil) ---
 function setActiveTab(tab){
@@ -861,6 +888,60 @@ document.getElementById('editNameBtn').addEventListener('click', () => {
   p.name = name.trim() || 'Viajero';
   saveProfile(p);
   renderProfileHeader();
+});
+
+// --- Copia de seguridad: exportar/restaurar todos los datos como archivo ---
+// Le pedimos al navegador almacenamiento persistente (donde se respeta, evita que
+// iOS borre los datos por inactividad). No siempre se concede, por eso además
+// ofrecemos la exportación manual como salvaguarda real.
+if(navigator.storage && navigator.storage.persist){
+  navigator.storage.persist().catch(() => {});
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const data = {
+    app: 'rutaopt', version: 1, exportedAt: new Date().toISOString(),
+    trips: getTrips(),
+    profile: getProfile()
+  };
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'rutaopt-copia-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  document.getElementById('backupStatus').textContent = 'Copia exportada. Guárdala en Archivos o iCloud.';
+});
+
+const importFile = document.getElementById('importFile');
+document.getElementById('importBtn').addEventListener('click', () => importFile.click());
+importFile.addEventListener('change', () => {
+  const file = importFile.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const bs = document.getElementById('backupStatus');
+    let data;
+    try { data = JSON.parse(reader.result); }
+    catch(err){ bs.textContent = 'El archivo no es una copia válida.'; return; }
+    if(data.app !== 'rutaopt' || !Array.isArray(data.trips)){
+      bs.textContent = 'El archivo no es una copia de RutaOpt.';
+      return;
+    }
+    const n = data.trips.length;
+    if(!confirm('¿Restaurar ' + n + (n === 1 ? ' viaje' : ' viajes') + ' de la copia? Esto REEMPLAZA tus viajes actuales en este dispositivo.')) return;
+    saveTrips(data.trips);
+    if(data.profile) saveProfile(data.profile);
+    importFile.value = '';
+    openTripId = null; openDayId = null; restaurantsMode = false;
+    renderProfileHeader();
+    renderSavedGrid();
+    bs.textContent = 'Copia restaurada: ' + n + (n === 1 ? ' viaje.' : ' viajes.');
+  };
+  reader.readAsText(file);
 });
 
 // --- Explorar: rutas públicas. Hoy son ejemplos curados en el propio archivo;
@@ -1130,6 +1211,7 @@ function renderSavedGrid(){
   // de viajes); al entrar en un viaje/día se oculta para dar espacio.
   const openTrip = openTripId && trips.find(t => t.id === openTripId);
   document.getElementById('profileHeader').classList.toggle('hidden', !!openTrip);
+  document.getElementById('backupSection').classList.toggle('hidden', !!openTrip);
   if(openTrip){
     if(restaurantsMode){ renderTripRestaurants(openTrip); return; }
     const openDay = openDayId && openTrip.days.find(d => d.id === openDayId);
@@ -1335,7 +1417,7 @@ function renderTripRestaurants(trip){
     saveTrips(trips);
     renderSavedGrid();
     setTimeout(() => { const el = document.querySelector('.resto-search-wrap input'); if(el) el.focus(); }, 0);
-  });
+  }, () => tripBiasCoord(trip));
   grid.appendChild(wrap);
 
   const list = trip.restaurants || [];
