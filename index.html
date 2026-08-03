@@ -123,6 +123,24 @@
   .card-link:active { transform: scale(0.93); }
   .card-link.gmaps { background: var(--accent-soft); color: var(--accent); }
   .card-link.walk { background: #e7f6ea; color: #2b8a3e; }
+
+  /* --- Lista reordenable del resultado (arrastrar para ajustar el orden) --- */
+  .reorder-section { margin-top: 14px; }
+  .reorder-title { font-size: 11px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .reorder-list { display: flex; flex-direction: column; gap: 8px; }
+  .reorder-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-card); border-radius: var(--radius-md); padding: 12px 14px;
+    box-shadow: var(--shadow-soft);
+    transition: transform 180ms var(--ease-out);
+  }
+  .reorder-row.dragging { transition: none; box-shadow: 0 10px 26px rgba(20,18,14,0.2); position: relative; z-index: 5; }
+  .reorder-row.fixed { opacity: 0.7; }
+  .reorder-handle { touch-action: none; cursor: grab; color: var(--text-muted); font-size: 17px; padding: 6px 4px; margin: -6px -2px; line-height: 1; }
+  .reorder-badge { width: 26px; text-align: center; font-size: 15px; }
+  .reorder-num { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+  .reorder-name { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reorder-tag { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-left: 4px; }
   #summary {
     margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--accent);
     background: var(--accent-soft); border-radius: var(--radius-sm); padding: 14px 16px; display: none;
@@ -1784,6 +1802,9 @@ const mapEl = document.getElementById('map');
 const mapNoteEl = document.getElementById('mapNote');
 let leafletMap = null;
 let routeLayer = null;
+// Contexto de la última optimización (puntos + matriz + orden) para poder
+// recalcular al vuelo cuando el usuario reordena manualmente, sin volver a la red.
+let lastOpt = null;
 
 // Segunda instancia de Leaflet para el mini-mapa del modo "en ruta". El contenedor
 // (enrutaMapEl) es un nodo persistente: aunque renderEnRuta borre el grid en cada
@@ -1945,6 +1966,146 @@ async function renderRouteMap(orderedPoints){
   });
 }
 
+// Pinta el resultado para un ORDEN dado. La optimización inicial y cada
+// reordenación manual llaman aquí. Los tiempos salen de la matriz ya calculada
+// (instantáneo); el mapa se redibuja al final (una llamada a OSRM por la geometría).
+async function renderResult(order, manual){
+  if(!lastOpt) return;
+  const { points, matrix } = lastOpt;
+  resultsEl.innerHTML = '';
+
+  renderReorderList(order);
+
+  let totalMin = 0, totalKm = 0;
+  for(let i = 0; i < order.length - 1; i++){
+    const a = points[order[i]], b = points[order[i+1]];
+    const durMin = Math.round(matrix.durations[order[i]][order[i+1]] / 60);
+    const distKm = (matrix.distances[order[i]][order[i+1]] / 1000).toFixed(1);
+    totalMin += durMin; totalKm += parseFloat(distKm);
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = Math.min(i * 60, 300) + 'ms';
+    const walkable = haversineKm(a, b) <= WALKING_MAX_KM;
+    const walk = walkable ? walkEstimate(a, b) : null;
+    card.innerHTML =
+      '<div class="leg-head">' +
+        '<span class="leg-num">' + (i+1) + '</span>' +
+        '<span class="leg-title">' + a.name.split(',')[0] + ' &rarr; ' + b.name.split(',')[0] + '</span>' +
+      '</div>' +
+      '<div class="pill-row">' +
+        '<div class="time-pill">' +
+          '<span class="car-time">🚗 En coche · ' + durMin + ' min · ' + distKm + ' km</span>' +
+          (walk ? '<span class="walk-time">🚶 A pie · ~' + walk.min + ' min · ' + walk.km.toFixed(1) + ' km</span>' : '') +
+        '</div>' +
+        (walkable ? '<span class="walk-badge">WALKING DISTANCE</span>' : '') +
+      '</div>' +
+      '<div class="go-label">Ir en:</div>' +
+      '<div class="card-links">' +
+        '<a class="card-link gmaps" href="' + mapsLink(a, b, 'transit') + '" target="_blank">🚇 T. público</a>' +
+        '<a class="card-link gmaps" href="' + mapsLink(a, b, 'driving') + '" target="_blank">🚗 Coche</a>' +
+        (walkable ? '<a class="card-link walk" href="' + mapsLink(a, b, 'walking') + '" target="_blank">🚶 A pie</a>' : '') +
+      '</div>';
+    resultsEl.appendChild(card);
+  }
+
+  summaryEl.style.display = 'block';
+  summaryEl.textContent = (manual ? 'Orden ajustado por ti' : 'Orden optimizado') +
+    '. Total referencia en coche: ~' + totalMin + ' min, ' + totalKm.toFixed(1) + ' km. Toca cada enlace para ver metro, líneas y tiempos reales.';
+
+  await renderRouteMap(order.map(i => points[i]));
+}
+
+// Lista de la ruta con las paradas intermedias arrastrables (el inicio y el
+// fin/regreso quedan fijos). Al soltar, recompone el orden y repinta.
+function renderReorderList(order){
+  const { points, roundtrip } = lastOpt;
+  const sec = document.createElement('div');
+  sec.className = 'reorder-section';
+  const title = document.createElement('div');
+  title.className = 'reorder-title';
+  title.textContent = 'Tu orden — arrastra ☰ para ajustar';
+  sec.appendChild(title);
+
+  const list = document.createElement('div');
+  list.className = 'reorder-list';
+  order.forEach((pi, idx) => {
+    const p = points[pi];
+    const isFirst = idx === 0, isLast = idx === order.length - 1;
+    const fixed = isFirst || isLast;
+    const row = document.createElement('div');
+    row.className = 'reorder-row' + (fixed ? ' fixed' : ' draggable');
+    let left, tag = '';
+    if(isFirst){ left = '<span class="reorder-badge">🏠</span>'; tag = '<span class="reorder-tag">inicio</span>'; }
+    else if(isLast){ left = '<span class="reorder-badge">' + (roundtrip ? '🏠' : '🏁') + '</span>'; tag = '<span class="reorder-tag">' + (roundtrip ? 'regreso' : 'fin') + '</span>'; }
+    else left = '<span class="reorder-handle">☰</span><span class="reorder-num">' + idx + '</span>';
+    row.innerHTML = left + '<span class="reorder-name">' + p.name.split(',')[0].replace(/</g,'&lt;') + tag + '</span>';
+    list.appendChild(row);
+  });
+  sec.appendChild(list);
+  resultsEl.appendChild(sec);
+
+  makeReorderable(list, (from, to) => {
+    const mid = order.slice(1, order.length - 1);
+    const [moved] = mid.splice(from, 1);
+    mid.splice(to, 0, moved);
+    const newOrder = [order[0], ...mid, order[order.length - 1]];
+    lastOpt.order = newOrder;
+    renderResult(newOrder, true);
+  });
+}
+
+// Arrastre táctil para reordenar (pointer events → funciona en iPhone). Solo se
+// arrastra desde el asa ☰; el resto de la fila deja hacer scroll normal.
+function makeReorderable(container, onReorder){
+  container.querySelectorAll('.reorder-row.draggable').forEach(row => {
+    const handle = row.querySelector('.reorder-handle');
+    if(!handle) return;
+    let all = [], startIndex = 0, targetIndex = 0, startY = 0, rowH = 0, pid = null;
+
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      all = Array.from(container.querySelectorAll('.reorder-row.draggable'));
+      startIndex = all.indexOf(row);
+      targetIndex = startIndex;
+      startY = e.clientY;
+      rowH = row.getBoundingClientRect().height + 8; // + gap
+      pid = e.pointerId;
+      handle.setPointerCapture(pid);
+      row.classList.add('dragging');
+    });
+
+    handle.addEventListener('pointermove', (e) => {
+      if(pid === null) return;
+      const dy = e.clientY - startY;
+      row.style.transform = 'translateY(' + dy + 'px)';
+      let ti = startIndex + Math.round(dy / rowH);
+      ti = Math.max(0, Math.min(all.length - 1, ti));
+      if(ti !== targetIndex){
+        targetIndex = ti;
+        all.forEach((r, idx) => {
+          if(r === row) return;
+          let shift = 0;
+          if(startIndex < targetIndex && idx > startIndex && idx <= targetIndex) shift = -rowH;
+          else if(startIndex > targetIndex && idx < startIndex && idx >= targetIndex) shift = rowH;
+          r.style.transform = shift ? 'translateY(' + shift + 'px)' : '';
+        });
+      }
+    });
+
+    const finish = () => {
+      if(pid === null) return;
+      pid = null;
+      row.classList.remove('dragging');
+      row.style.transform = '';
+      all.forEach(r => { r.style.transform = ''; });
+      if(targetIndex !== startIndex) onReorder(startIndex, targetIndex);
+    };
+    handle.addEventListener('pointerup', finish);
+    handle.addEventListener('pointercancel', finish);
+  });
+}
+
 let optimizing = false;
 async function runOptimize(){
   if(optimizing) return; // guarda contra doble-pulsación mientras trabaja
@@ -1997,48 +2158,10 @@ async function runOptimize(){
 
     statusEl.textContent = 'Optimizando orden de visita...';
     const solution = solveTSP(matrix.durations, startIdx, endIdx, middleIdx);
-    const orderedPoints = solution.order.map(i => points[i]);
+    lastOpt = { points, matrix, roundtrip, order: solution.order.slice() };
     statusEl.textContent = 'Dibujando ruta en el mapa...';
-    await renderRouteMap(orderedPoints);
-
-    let totalMin = 0, totalKm = 0;
-    for(let i=0;i<solution.order.length-1;i++){
-      const a = points[solution.order[i]];
-      const b = points[solution.order[i+1]];
-      const durMin = Math.round(matrix.durations[solution.order[i]][solution.order[i+1]] / 60);
-      const distKm = (matrix.distances[solution.order[i]][solution.order[i+1]] / 1000).toFixed(1);
-      totalMin += durMin;
-      totalKm += parseFloat(distKm);
-
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.style.animationDelay = Math.min(i * 60, 300) + 'ms';
-      const walkable = haversineKm(a, b) <= WALKING_MAX_KM;
-      const walk = walkable ? walkEstimate(a, b) : null;
-      card.innerHTML =
-        '<div class="leg-head">' +
-          '<span class="leg-num">' + (i+1) + '</span>' +
-          '<span class="leg-title">' + a.name.split(',')[0] + ' &rarr; ' + b.name.split(',')[0] + '</span>' +
-        '</div>' +
-        '<div class="pill-row">' +
-          '<div class="time-pill">' +
-            '<span class="car-time">🚗 En coche · ' + durMin + ' min · ' + distKm + ' km</span>' +
-            (walk ? '<span class="walk-time">🚶 A pie · ~' + walk.min + ' min · ' + walk.km.toFixed(1) + ' km</span>' : '') +
-          '</div>' +
-          (walkable ? '<span class="walk-badge">WALKING DISTANCE</span>' : '') +
-        '</div>' +
-        '<div class="go-label">Ir en:</div>' +
-        '<div class="card-links">' +
-          '<a class="card-link gmaps" href="' + mapsLink(a, b, 'transit') + '" target="_blank">🚇 T. público</a>' +
-          '<a class="card-link gmaps" href="' + mapsLink(a, b, 'driving') + '" target="_blank">🚗 Coche</a>' +
-          (walkable ? '<a class="card-link walk" href="' + mapsLink(a, b, 'walking') + '" target="_blank">🚶 A pie</a>' : '') +
-        '</div>';
-      resultsEl.appendChild(card);
-    }
-
+    await renderResult(lastOpt.order, false);
     statusEl.textContent = '';
-    summaryEl.style.display = 'block';
-    summaryEl.textContent = 'Orden optimizado. Total referencia en coche: ~' + totalMin + ' min, ' + totalKm.toFixed(1) + ' km. Toca cada enlace para ver metro, líneas y tiempos reales.';
     ok = true;
   } catch(err){
     statusEl.textContent = 'Error: ' + err.message;
